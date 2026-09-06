@@ -270,7 +270,7 @@
             authEmail.value = '';
             authPassword.value = '';
           } catch (err) {
-            authError.value = err.message.includes('password') ? '密碼長度不足或錯誤' : '帳號或密碼格式有誤';
+            authError.value = err.message;
           } finally {
             isAuthLoading.value = false;
           }
