@@ -60,10 +60,10 @@
       </div>
     </div>
 
-    <!-- 2. 已登入：完整旗艦版介面 -->
+    <!-- 2. 已登入：完整主介面 -->
     <div v-else class="flex-1 flex flex-col">
 
-      <!-- 頂部深藍色旗艦看板區 -->
+      <!-- 頂部深藍色看板 -->
       <header class="bg-blue-600 text-white px-4 pt-4 pb-5 rounded-b-3xl shadow-md">
         <div class="flex justify-between items-center mb-3">
           <div class="flex items-center gap-2 font-bold text-lg">
@@ -100,12 +100,11 @@
         </div>
       </header>
 
-      <!-- 主要內容區（依底部頁籤切換） -->
+      <!-- 分頁內容區 -->
       <main class="p-4 flex-1">
 
         <!-- 分頁 1：收支記帳 -->
         <div v-show="currentTab === 'records'" class="space-y-4">
-          <!-- 快速記帳卡片 -->
           <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
             <div class="grid grid-cols-2 gap-2 mb-2">
               <select v-model="form.type" class="p-2 border rounded-xl text-sm bg-slate-50 font-medium">
@@ -125,7 +124,6 @@
             </button>
           </div>
 
-          <!-- 明細清單 -->
           <div>
             <div class="flex justify-between items-center mb-2 px-1">
               <div class="text-xs font-bold text-slate-600">本月明細 ({{ filteredTransactions.length }} 筆)</div>
@@ -167,7 +165,7 @@
             <div v-for="cat in categories" :key="cat" class="p-3 bg-slate-50 rounded-xl">
               <div class="flex justify-between items-center text-xs font-semibold mb-1.5">
                 <span>{{ cat }}</span>
-                <span class="text-slate-500">已支 NT$ {{ getCategorySpent(cat).toLocaleString() }} / 預算 NT$ {{ (categoryBudgets[cat] || 0).toLocaleString() }}</span>
+                <span class="text-slate-500">已花費: NT$ {{ getCategorySpent(cat).toLocaleString() }} | 預算: NT$ {{ (categoryBudgets[cat] || 0).toLocaleString() }}</span>
               </div>
               <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
                 <div class="h-full transition-all duration-300" :style="{ width: getBudgetPercent(cat) + '%', backgroundColor: getBudgetColor(cat) }"></div>
@@ -215,7 +213,7 @@
 
       </main>
 
-      <!-- 底部固定四個導航分頁列 -->
+      <!-- 底部導航欄 -->
       <nav class="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-white/95 backdrop-blur-md border-t border-slate-200 grid grid-cols-4 py-2 z-40">
         <button @click="switchTab('records')" class="flex flex-col items-center py-1 text-xs" :class="currentTab === 'records' ? 'text-blue-600 font-bold' : 'text-slate-400'">
           <span class="text-base">📋</span>
@@ -266,8 +264,13 @@
             <input v-model.number="newShopItem.price" type="number" placeholder="金額" class="w-16 p-2 text-xs border rounded-lg outline-none bg-slate-50">
             <button @click="addShoppingItem" class="bg-emerald-600 text-white text-xs px-3 rounded-lg font-bold">新增</button>
           </div>
+
+          <!-- 清單項目區（無範例） -->
           <div class="p-3 overflow-y-auto flex-1 divide-y divide-slate-100">
-            <div v-for="(item, idx) in shoppingList" :key="item.id || idx" class="py-2 flex items-center justify-between">
+            <div v-if="shoppingList.length === 0" class="p-8 text-center text-xs text-slate-400">
+              目前清單是空的，歡迎新增採購品項！
+            </div>
+            <div v-for="(item, idx) in shoppingList" :key="item.id || idx" class="py-2.5 flex items-center justify-between">
               <label class="flex items-center gap-2 overflow-hidden flex-1 cursor-pointer">
                 <input type="checkbox" v-model="item.done" @change="saveUserData" class="w-4 h-4 rounded text-blue-600">
                 <span :class="{'line-through text-slate-300': item.done}" class="text-xs text-slate-700 truncate">{{ item.name }}</span>
@@ -277,14 +280,36 @@
               </label>
               <div class="flex items-center gap-2">
                 <span class="text-xs font-semibold text-slate-600">NT$ {{ item.price }}</span>
-                <button @click="deleteShoppingItem(idx)" class="text-slate-300 hover:text-rose-500 text-xs">✕</button>
+                <!-- 修改鈕 -->
+                <button @click="openEditShopItem(item)" class="text-blue-500 hover:text-blue-700 text-xs px-1 font-medium">修改</button>
+                <!-- 刪除鈕 -->
+                <button @click="deleteShoppingItem(idx)" class="text-slate-300 hover:text-rose-500 text-xs px-1">✕</button>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 編輯 / 刪除記帳彈窗 -->
+      <!-- 採購品項修改彈窗 -->
+      <div v-if="editingShopItem" class="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-xs w-full p-4 space-y-3 shadow-2xl">
+          <div class="text-sm font-bold text-slate-800">✏️ 修改採購品項</div>
+          <input v-model="editingShopItem.name" placeholder="品名" class="w-full p-2 border rounded-xl text-xs bg-slate-50 outline-none">
+          <div class="grid grid-cols-2 gap-2">
+            <select v-model="editingShopItem.cycle" class="p-2 border rounded-xl text-xs bg-slate-50">
+              <option value="weekly">每週</option>
+              <option value="monthly">每月</option>
+            </select>
+            <input v-model.number="editingShopItem.price" type="number" placeholder="金額" class="p-2 border rounded-xl text-xs bg-slate-50 outline-none">
+          </div>
+          <div class="flex gap-2 pt-1">
+            <button @click="editingShopItem = null" class="flex-1 py-2 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold">取消</button>
+            <button @click="saveEditingShopItem" class="flex-1 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold">保存修改</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 記帳明細修改彈窗 -->
       <div v-if="editingItem" class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl max-w-sm w-full p-5 space-y-3 shadow-2xl">
           <div class="text-sm font-bold text-slate-800">修改或刪除記錄</div>
@@ -338,24 +363,18 @@
 
         const currentTab = ref('records');
         const transactions = ref([]);
-        const categories = ref(["餐飲飲食", "生活日用", "水電瓦斯", "交通運輸", "休閒娛樂", "醫療保健", "薪資收入", "其他"]);
-        const categoryBudgets = ref({ "餐飲飲食": 10000, "生活日用": 5000, "水電瓦斯": 3000, "交通運輸": 2000 });
+        const categories = ref(["餐飲飲食", "日常採買", "水電瓦斯", "交通保養", "旅遊玩耍", "健康醫療", "其他"]);
+        const categoryBudgets = ref({ "餐飲飲食": 10000, "日常採買": 5000, "水電瓦斯": 3000, "交通保養": 3000, "旅遊玩耍": 4000 });
         const shoppingList = ref([]);
 
         const showShoppingModal = ref(false);
         const editingItem = ref(null);
+        const editingShopItem = ref(null);
         const newCategoryName = ref('');
 
-        const form = ref({
-          type: '支出',
-          category: '餐飲飲食',
-          amount: null,
-          note: ''
-        });
-
+        const form = ref({ type: '支出', category: '餐飲飲食', amount: null, note: '' });
         const newShopItem = ref({ name: '', cycle: 'weekly', price: null });
 
-        // 月份選單
         const selectedMonth = ref(new Date().toISOString().slice(0, 7).replace('-', '年') + '月');
         const monthList = computed(() => {
           const list = [];
@@ -372,9 +391,7 @@
         onMounted(() => {
           auth.onAuthStateChanged(user => {
             currentUser.value = user;
-            if (user) {
-              loadUserData(user.uid);
-            }
+            if (user) loadUserData(user.uid);
           });
         });
 
@@ -384,11 +401,7 @@
             transactions.value = val.transactions || [];
             if (val.categories) categories.value = val.categories;
             if (val.categoryBudgets) categoryBudgets.value = val.categoryBudgets;
-            shoppingList.value = val.shoppingList || [
-              { id: 1, name: "鮮奶 / 豆漿", cycle: "weekly", price: 180, done: false },
-              { id: 2, name: "雞胸肉 / 雞蛋", cycle: "weekly", price: 350, done: false },
-              { id: 3, name: "衛生紙 / 洗潔精", cycle: "monthly", price: 500, done: false }
-            ];
+            shoppingList.value = val.shoppingList || []; // 預設無範例
             renderChart();
           });
         };
@@ -422,32 +435,22 @@
         };
 
         const handleLogout = () => auth.signOut();
-
         const forceSync = () => {
           if (currentUser.value) loadUserData(currentUser.value.uid);
         };
 
-        // 月份篩選紀錄
         const filteredTransactions = computed(() => {
           const matchMonth = selectedMonth.value.replace('年', '-').replace('月', '');
           return transactions.value.filter(t => (t.date || '').startsWith(matchMonth));
         });
 
-        // 統計數字
-        const currentMonthIncome = computed(() => {
-          return filteredTransactions.value.filter(t => t.type === '收入').reduce((s, t) => s + Number(t.amount || 0), 0);
-        });
-
-        const currentMonthExpense = computed(() => {
-          return filteredTransactions.value.filter(t => t.type === '支出').reduce((s, t) => s + Number(t.amount || 0), 0);
-        });
-
+        const currentMonthIncome = computed(() => filteredTransactions.value.filter(t => t.type === '收入').reduce((s, t) => s + Number(t.amount || 0), 0));
+        const currentMonthExpense = computed(() => filteredTransactions.value.filter(t => t.type === '支出').reduce((s, t) => s + Number(t.amount || 0), 0));
         const remainingBudget = computed(() => {
           const totalBudget = Object.values(categoryBudgets.value).reduce((s, v) => s + Number(v || 0), 0);
           return totalBudget - currentMonthExpense.value;
         });
 
-        // 記帳
         const addTransaction = () => {
           if (!form.value.amount || form.value.amount <= 0) return alert('請輸入金額');
           transactions.value.unshift({
@@ -478,30 +481,20 @@
           editingItem.value = null;
         };
 
-        // 預算邏輯
-        const getCategorySpent = (cat) => {
-          return filteredTransactions.value.filter(t => t.type === '支出' && t.category === cat).reduce((s, t) => s + Number(t.amount || 0), 0);
-        };
-
+        const getCategorySpent = (cat) => filteredTransactions.value.filter(t => t.type === '支出' && t.category === cat).reduce((s, t) => s + Number(t.amount || 0), 0);
         const getBudgetPercent = (cat) => {
           const b = categoryBudgets.value[cat] || 0;
-          if (b <= 0) return 0;
-          return Math.min(100, Math.round((getCategorySpent(cat) / b) * 100));
+          return b <= 0 ? 0 : Math.min(100, Math.round((getCategorySpent(cat) / b) * 100));
         };
-
         const getBudgetColor = (cat) => {
           const p = getBudgetPercent(cat);
-          if (p >= 100) return '#ef4444';
-          if (p >= 80) return '#f59e0b';
-          return '#3b82f6';
+          return p >= 100 ? '#ef4444' : p >= 80 ? '#f59e0b' : '#3b82f6';
         };
-
         const updateBudget = (cat, val) => {
           categoryBudgets.value[cat] = Number(val) || 0;
           saveUserData();
         };
 
-        // 類別管理
         const addCategory = () => {
           const name = newCategoryName.value.trim();
           if (name && !categories.value.includes(name)) {
@@ -515,7 +508,7 @@
           saveUserData();
         };
 
-        // 採購清單邏輯
+        // 採購品項邏輯與修改
         const weeklyShoppingCost = computed(() => shoppingList.value.filter(i => i.cycle === 'weekly').reduce((s, i) => s + Number(i.price || 0), 0));
         const monthlyShoppingCost = computed(() => {
           const mItems = shoppingList.value.filter(i => i.cycle === 'monthly').reduce((s, i) => s + Number(i.price || 0), 0);
@@ -534,12 +527,20 @@
           newShopItem.value.price = null;
           saveUserData();
         };
+        const openEditShopItem = (item) => editingShopItem.value = { ...item };
+        const saveEditingShopItem = () => {
+          const idx = shoppingList.value.findIndex(i => i.id === editingShopItem.value.id);
+          if (idx !== -1) {
+            shoppingList.value[idx] = { ...editingShopItem.value };
+            saveUserData();
+          }
+          editingShopItem.value = null;
+        };
         const deleteShoppingItem = (idx) => {
           shoppingList.value.splice(idx, 1);
           saveUserData();
         };
 
-        // 圖表繪製
         const renderChart = () => {
           nextTick(() => {
             const ctx = document.getElementById('expenseChart');
@@ -574,13 +575,13 @@
         return {
           currentUser, authEmail, authPassword, authError, isAuthLoading,
           currentTab, transactions, categories, categoryBudgets, shoppingList,
-          showShoppingModal, editingItem, newCategoryName, form, newShopItem,
+          showShoppingModal, editingItem, editingShopItem, newCategoryName, form, newShopItem,
           selectedMonth, monthList, currentMonthIncome, currentMonthExpense, remainingBudget,
           filteredTransactions, handleAuth, handleLogout, forceSync, switchTab,
           addTransaction, openEditModal, saveEditingItem, deleteEditingItem,
           getCategorySpent, getBudgetPercent, getBudgetColor, updateBudget,
           addCategory, removeCategory, weeklyShoppingCost, monthlyShoppingCost,
-          addShoppingItem, deleteShoppingItem, saveUserData
+          addShoppingItem, openEditShopItem, saveEditingShopItem, deleteShoppingItem, saveUserData
         };
       }
     }).mount('#app');
