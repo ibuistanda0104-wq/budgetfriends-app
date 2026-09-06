@@ -71,7 +71,7 @@
           </div>
           <div class="flex items-center gap-2">
             <button @click="forceSync" class="text-xs bg-white/20 hover:bg-white/30 px-2.5 py-1 rounded-lg flex items-center gap-1 transition">
-              <span>🔄</span> 同步
+              <span>🔄</span> 更新
             </button>
             <select v-model="selectedMonth" class="bg-white/20 text-xs px-2.5 py-1 rounded-lg outline-none font-medium text-white border-none cursor-pointer">
               <option v-for="m in monthList" :key="m" :value="m" class="text-slate-800">{{ m }}</option>
@@ -121,7 +121,7 @@
               <input v-model="form.note" placeholder="例：午餐、加油..." class="p-2 border rounded-xl text-sm outline-none bg-slate-50">
             </div>
             <button @click="addTransaction" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm shadow-sm transition">
-              + 加入此筆記錄 (同步雲端)
+              + 加入此筆記錄
             </button>
           </div>
 
